@@ -4,39 +4,45 @@ from flask import Flask, render_template, request
 import pickle
 import pandas as pd
 
-app = Flask(__name__)
-
-@app.route("/")
-def hello():
-    return render_template('home.html')
-
-@app.route("/querytest", methods=['GET'])
-def query_test():
-    x = request.args.get("text")
-    return render_template('predict.html', forum = x)
-
-
-
-@app.route("/predict", methods=['GET'] )
-def predict():
-    # text = 'I want to play the new call of duty'
-    text = request.args.get("text")
-    nn = pickle.load(open('model.pkl', 'rb'))
-    vect = pickle.load(open('countvectorizer.pkl', 'rb'))
-    subset = pd.read_pickle("./dataset.pkl")
-    new = vect.transform([text])
+def create_app():
     
-    x = nn.kneighbors(new.todense())
-    
-    y = x[1][0][0]
-    z = subset.iloc[y][0]
-    
-    return render_template('predict.html', forum=z)
+    app = Flask(__name__)
+    bayes = pickle.load(open('naive_bayes.pkl', 'rb'))
+    tfidf = pickle.load(open('tfidf.pkl', 'rb'))
+
+    @app.route("/")
+    def hello():
+        return render_template('home.html')
+
+    @app.route("/querytest", methods=['GET'])
+    def query_test():
+        x = request.args.get("text")
+        return render_template('predict.html', forum = x)
+
+
+    @app.route("/predict", methods=['POST'])
+    @app.route("/predict/<text>", methods=['GET'])
+    def predict(text=None):
+        try:
+            if request.method == 'POST':
+                text = request.values['text']
+        except KeyError:
+            return ('''Bad request: value missing''')
+        else:
+            def model_prediction(text):
+                
+                new = tfidf.transform([text])
+                
+                predicter = bayes.predict(new)
+
+                return predicter[0]
+            prediction = model_prediction(text)
+            return str(prediction)
 
 
 
-@app.route("/about")
-def preds():
-    return render_template('about.html')
+    @app.route("/about")
+    def preds():
+        return render_template('about.html')
 
-# ,method = POST
+    return app
