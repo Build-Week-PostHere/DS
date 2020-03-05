@@ -34,7 +34,7 @@ def predict(text=None):
             
             predicter = bayes.predict(new)
 
-             return predicter[0]
+            return predicter[0]
         prediction = model_prediction(text)
         return str(prediction)
 
